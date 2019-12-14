@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt  # noqa
 import numpy as np  # noqa
 import tensorflow as tf  # noqa
 
+from hyperopt import hp, fmin, tpe, STATUS_OK, Trials
 from mpl_toolkits.mplot3d import Axes3D  # noqa
 
 
@@ -23,6 +24,21 @@ def cost_function(x, y, func_name='kaist', return_np=False):
         return z.numpy()
     else:
         return z
+
+
+def hyperopt_objective(space):
+    x = space['x']
+    y = space['y']
+    func_name = space['func_name']
+    target = space['target']
+
+    z = cost_function(x, y, func_name=func_name, return_np=True)
+    if target is None:
+        loss = z
+    else:
+        loss = np.abs(z - target)
+
+    return {'loss': loss, 'status': STATUS_OK, 'history': [x, y, z, loss]}
 
 
 def draw_cost_function(func_name='sphere'):
@@ -50,7 +66,7 @@ def draw_cost_function(func_name='sphere'):
 
 
 def draw_optimize_history(ax, history, label):
-    color_list = ['tab:blue', 'tab:orange']
+    color_list = ['tab:blue', 'tab:orange', 'tab:green']
     iterations = len(history[0])
 
     for iteration in range(iterations - 1):
@@ -113,16 +129,41 @@ def optimize_tf(x_0, y_0, optimizer, func_name='kaist', target=None, iterations=
     return history
 
 
+def opimize_hyperopt(x_0, y_0, func_name='kaist', target=None, iterations=100):
+    space = dict()
+    space['x'] = hp.uniform('x', -1.5, 1.5)
+    space['y'] = hp.uniform('y', -1.5, 1.5)
+    space['func_name'] = func_name
+    space['target'] = target
+
+    trials = Trials()
+    fmin(hyperopt_objective, space=space, algo=tpe.suggest, max_evals=iterations, trials=trials)
+
+    history = [[x_0, y_0, cost_function(x_0, y_0, func_name=func_name, return_np=True), np.nan]]
+    for i in range(iterations):
+        history.append(trials.results[i]['history'])
+
+    return history
+
+
 def main():
     x_0 = 0.75
     y_0 = 1.0
-    func_name = 'kaist'
+    func_name = 'sphere'
     target = -1
+    iterations = 100
 
     ax = draw_cost_function(func_name=func_name)
-    sgd_history = optimize_tf(x_0, y_0, tf.keras.optimizers.SGD(lr=0.1), func_name=func_name, target=target)
-    adam_history = optimize_tf(x_0, y_0, tf.keras.optimizers.Adam(lr=0.1), func_name=func_name, target=target)
-    draw_optimize_history(ax, [sgd_history, adam_history], ['SGD (lr=0.1)', 'Adam (lr=0.1)'])
+    sgd_history = optimize_tf(
+        x_0, y_0, tf.keras.optimizers.SGD(lr=0.1), func_name=func_name, target=target, iterations=iterations
+    )
+    adam_history = optimize_tf(
+        x_0, y_0, tf.keras.optimizers.Adam(lr=0.1), func_name=func_name, target=target, iterations=iterations
+    )
+    hyperopt_history = opimize_hyperopt(x_0, y_0, func_name=func_name, target=target, iterations=iterations)
+    draw_optimize_history(ax,
+                          [sgd_history, adam_history, hyperopt_history],
+                          ['SGD (lr=0.1)', 'Adam (lr=0.1)', 'TPE'])
 
 
 if __name__ == '__main__':
