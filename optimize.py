@@ -19,6 +19,8 @@ def cost_function(x, y, func_name='kaist', return_np=False):
         z = tf.square(x) + tf.square(y)
     elif func_name == 'rosenbrock':
         z = 100 * tf.square(y - tf.square(x)) + tf.square(1 - x)
+    elif func_name == 'himmelblau':
+        z = tf.square(tf.square(x) + y - 11) + tf.square(x + tf.square(y) - 7)
     else:
         raise ValueError()
 
@@ -56,30 +58,38 @@ def hyperopt_objective(space):
 def draw_cost_function(func_name='sphere'):
     plt.ion()
     fig = plt.figure(figsize=(3, 2), dpi=300)
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
     plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
     params = {'legend.fontsize': 3,
               'legend.handlelength': 3}
     plt.rcParams.update(params)
     plt.axis('off')
 
-    x_val = np.arange(-1.5, 1.5, 0.005, dtype=np.float32)
-    y_val = np.arange(-1.5, 1.5, 0.005, dtype=np.float32)
+    if func_name == 'himmelblau':
+        x_val = np.arange(-5.0, 5.0, 0.005, dtype=np.float32)
+        y_val = np.arange(-5.0, 5.0, 0.005, dtype=np.float32)
+    else:
+        x_val = np.arange(-1.5, 1.5, 0.005, dtype=np.float32)
+        y_val = np.arange(-1.5, 1.5, 0.005, dtype=np.float32)
     x_val_mesh, y_val_mesh = np.meshgrid(x_val, y_val)
     x_val_mesh_flat = x_val_mesh.reshape([-1, 1])
     y_val_mesh_flat = y_val_mesh.reshape([-1, 1])
     z_val_mesh_flat = cost_function(x_val_mesh_flat, y_val_mesh_flat, func_name=func_name, return_np=True)
     z_val_mesh = z_val_mesh_flat.reshape(x_val_mesh.shape)
 
-    ax.plot_surface(x_val_mesh, y_val_mesh, z_val_mesh, alpha=.4, cmap='coolwarm')
+    ax.plot_surface(x_val_mesh, y_val_mesh, z_val_mesh, alpha=.4, cmap='jet')
     plt.draw()
 
     return ax
 
 
-def draw_optimize_history(ax, history, label):
+def draw_optimize_history(ax1, history, label):
     color_list = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
     iterations = len(history[0])
+
+    x = list()
+    y = list()
+    z = list()
 
     for iteration in range(iterations - 1):
         scatter_list = list()
@@ -93,25 +103,29 @@ def draw_optimize_history(ax, history, label):
             y_val = history[i][iteration + 1][1]
             z_val = history[i][iteration + 1][2]
 
+            x.append(x_val)
+            y.append(y_val)
+            z.append(z_val)
+
             loss = history[i][iteration + 1][3]
 
-            ax.plot([x_pre, x_val], [y_pre, y_val], [z_pre, z_val],
-                    linewidth=0.5, color=color_list[i])
-            scatter_list.append(ax.scatter(x_val, y_val, z_val,
-                                           s=1, depthshade=True, color=color_list[i]))
-            text_list.append(ax.text(x_val, y_val, z_val,
-                                     '  x: {:.2f}, y: {:.2f}, z: {:.2f}, cost: {:.2f}'.format(
-                                         x_val, y_val, z_val, loss
-                                     ), fontsize=3))
+            # ax.plot([x_pre, x_val], [y_pre, y_val], [z_pre, z_val],
+            #         linewidth=0.5, color=color_list[i])
+            scatter_list.append(ax1.scatter(x_val, y_val, z_val,
+                                            s=1, depthshade=True, color=color_list[i]))
+            text_list.append(ax1.text(x_val, y_val, z_val,
+                                      '  x: {:.2f}, y: {:.2f}, z: {:.2f}, cost: {:.2f}'.format(
+                                          x_val, y_val, z_val, loss
+                                      ), fontsize=3))
 
         if iteration == 0:
             plt.legend(scatter_list, label)
 
-        plt.pause(0.001)
+        plt.pause(0.0001)
 
         if iteration != range(iterations - 1)[-1]:
-            for scatter in scatter_list:
-                scatter.remove()
+            # for scatter in scatter_list:
+            #     scatter.remove()
             for text in text_list:
                 text.remove()
 
@@ -195,11 +209,17 @@ def main():
     adam_history = optimize_tf(
         x_0, y_0, tf.keras.optimizers.Adam(lr=0.1), func_name=func_name, target=target, iterations=iterations
     )
-    bayes_opt_history = optimize_bayes_opt(x_0, y_0, func_name=func_name, target=target, iterations=iterations)
+    # bayes_opt_history = optimize_bayes_opt(x_0, y_0, func_name=func_name, target=target, iterations=iterations)
     hyperopt_history = opimize_hyperopt(x_0, y_0, func_name=func_name, target=target, iterations=iterations)
     draw_optimize_history(ax,
-                          [sgd_history, adam_history, bayes_opt_history, hyperopt_history],
-                          ['SGD (lr=0.1)', 'Adam (lr=0.1)', 'Bayes-GP', 'Bayes-TPE'])
+                          [sgd_history,
+                           adam_history,
+                           # bayes_opt_history,
+                           hyperopt_history],
+                          ['SGD (lr=0.1)',
+                           'Adam (lr=0.1)',
+                           # 'Bayes-GP',
+                           'Bayes-TPE'])
 
 
 if __name__ == '__main__':
