@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt  # noqa
 import numpy as np  # noqa
 import tensorflow as tf  # noqa
 
-from hyperopt import hp, fmin, tpe, STATUS_OK, Trials
+from bayes_opt import BayesianOptimization  # noqa
+from functools import partial  # noqa
+from hyperopt import hp, fmin, tpe, STATUS_OK, Trials  # noqa
 from mpl_toolkits.mplot3d import Axes3D  # noqa
 
 
@@ -24,6 +26,16 @@ def cost_function(x, y, func_name='kaist', return_np=False):
         return z.numpy()
     else:
         return z
+
+
+def bayes_opt_objective(x, y, func_name='kaist', target=None):
+    z = cost_function(x, y, func_name=func_name, return_np=True)
+    if target is None:
+        loss = z
+    else:
+        loss = np.abs(z - target)
+
+    return -1 * loss
 
 
 def hyperopt_objective(space):
@@ -66,7 +78,7 @@ def draw_cost_function(func_name='sphere'):
 
 
 def draw_optimize_history(ax, history, label):
-    color_list = ['tab:blue', 'tab:orange', 'tab:green']
+    color_list = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
     iterations = len(history[0])
 
     for iteration in range(iterations - 1):
@@ -95,7 +107,7 @@ def draw_optimize_history(ax, history, label):
         if iteration == 0:
             plt.legend(scatter_list, label)
 
-        plt.pause(0.0001)
+        plt.pause(0.001)
 
         if iteration != range(iterations - 1)[-1]:
             for scatter in scatter_list:
@@ -103,7 +115,7 @@ def draw_optimize_history(ax, history, label):
             for text in text_list:
                 text.remove()
 
-    plt.pause(10)
+    plt.pause(100)
 
 
 def optimize_tf(x_0, y_0, optimizer, func_name='kaist', target=None, iterations=100):
@@ -146,10 +158,33 @@ def opimize_hyperopt(x_0, y_0, func_name='kaist', target=None, iterations=100):
     return history
 
 
+def optimize_bayes_opt(x_0, y_0, func_name='kaist', target=None, iterations=100):
+    f = partial(bayes_opt_objective, func_name=func_name, target=target)
+    pbounds = {'x': (-1.5, 1.5), 'y': (-1.5, 1.5)}
+
+    optimizer = BayesianOptimization(
+        f=f,
+        pbounds=pbounds
+    )
+    optimizer.maximize(init_points=0, n_iter=iterations)
+
+    history = [[x_0, y_0, cost_function(x_0, y_0, func_name=func_name, return_np=True), np.nan]]
+    for i, res in enumerate(optimizer.res):
+        params = res['params']
+        cost = res['target']
+        x = params['x']
+        y = params['y']
+        z = cost_function(x, y, func_name=func_name, return_np=True)
+
+        history.append([x, y, z, cost])
+
+    return history
+
+
 def main():
     x_0 = 0.75
     y_0 = 1.0
-    func_name = 'sphere'
+    func_name = 'kaist'
     target = -1
     iterations = 100
 
@@ -160,10 +195,11 @@ def main():
     adam_history = optimize_tf(
         x_0, y_0, tf.keras.optimizers.Adam(lr=0.1), func_name=func_name, target=target, iterations=iterations
     )
+    bayes_opt_history = optimize_bayes_opt(x_0, y_0, func_name=func_name, target=target, iterations=iterations)
     hyperopt_history = opimize_hyperopt(x_0, y_0, func_name=func_name, target=target, iterations=iterations)
     draw_optimize_history(ax,
-                          [sgd_history, adam_history, hyperopt_history],
-                          ['SGD (lr=0.1)', 'Adam (lr=0.1)', 'TPE'])
+                          [sgd_history, adam_history, bayes_opt_history, hyperopt_history],
+                          ['SGD (lr=0.1)', 'Adam (lr=0.1)', 'Bayes-GP', 'Bayes-TPE'])
 
 
 if __name__ == '__main__':
