@@ -28,7 +28,8 @@ def main():
 
     optimizer = BayesianOptimization(
         f=objective,
-        pbounds=pbounds
+        pbounds=pbounds,
+        acq='ucb'
     )
     optimizer.maximize(init_points=64, n_iter=max_evals)
 
