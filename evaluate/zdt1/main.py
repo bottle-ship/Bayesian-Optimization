@@ -43,6 +43,11 @@ def main():
     f2_platypus_pf = platypus_pf[:, 1]
     plt.scatter(f1_platypus_pf, f2_platypus_pf, label='NSGA2 (Platypus)')
 
+    jmetalpy_pf = np.load('_jmetalpy/result_y_pareto.npy')
+    f1_jmetalpy_pf = jmetalpy_pf[:, 0]
+    f2_jmetalpy_pf = jmetalpy_pf[:, 1]
+    plt.scatter(f1_jmetalpy_pf, f2_jmetalpy_pf, label='NSGA2 (jmetalpy)')
+
     plt.xlabel('f1(x)')
     plt.ylabel('f2(x)')
     plt.legend()
