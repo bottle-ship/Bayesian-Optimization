@@ -21,22 +21,27 @@ def main():
     mobo_nsga2_ei_pf = np.load('./_mobo_sode-nsga2-ei/result_y_pareto.npy')
     f1_mobo_nsga2_ei_pf = mobo_nsga2_ei_pf[:, 0]
     f2_mobo_nsga2_ei_pf = mobo_nsga2_ei_pf[:, 1]
-    plt.scatter(f1_mobo_nsga2_ei_pf, f2_mobo_nsga2_ei_pf, label='NSGA2-EI (mobo)')
+    plt.scatter(f1_mobo_nsga2_ei_pf, f2_mobo_nsga2_ei_pf, label='NSGA2:EI (mobo)')
 
     mobo_nsga2_ucb_pf = np.load('./_mobo_sode-nsga2-ucb/result_y_pareto.npy')
     f1_mobo_nsga2_ucb_pf = mobo_nsga2_ucb_pf[:, 0]
     f2_mobo_nsga2_ucb_pf = mobo_nsga2_ucb_pf[:, 1]
-    plt.scatter(f1_mobo_nsga2_ucb_pf, f2_mobo_nsga2_ucb_pf, label='NSGA2-UCB (mobo)')
+    plt.scatter(f1_mobo_nsga2_ucb_pf, f2_mobo_nsga2_ucb_pf, label='NSGA2:UCB (mobo)')
 
     pymoo_nsga2_pf = np.load('_pymoo-nsga2/result_y_pareto.npy')
     f1_pymoo_nsga2_pf = pymoo_nsga2_pf[:, 0]
     f2_pymoo_nsga2_pf = pymoo_nsga2_pf[:, 1]
     plt.scatter(f1_pymoo_nsga2_pf, f2_pymoo_nsga2_pf, label='NSGA2 (pymoo)')
 
-    bayes_opt_pf = np.load('_bayes_opt/result_y_pareto.npy')
+    bayes_opt_pf = np.load('_bayes_opt-ucb/result_y_pareto.npy')
     f1_bayes_opt_pf = bayes_opt_pf[:, 0]
     f2_bayes_opt_pf = bayes_opt_pf[:, 1]
-    plt.scatter(f1_bayes_opt_pf, f2_bayes_opt_pf, label='Bayes opt')
+    plt.scatter(f1_bayes_opt_pf, f2_bayes_opt_pf, label='L-BFGS-B:UCB (bayes-opt)')
+
+    platypus_pf = np.load('_Platypus/result_y_pareto.npy')
+    f1_platypus_pf = platypus_pf[:, 0]
+    f2_platypus_pf = platypus_pf[:, 1]
+    plt.scatter(f1_platypus_pf, f2_platypus_pf, label='NSGA2 (Platypus)')
 
     plt.xlabel('f1(x)')
     plt.ylabel('f2(x)')
