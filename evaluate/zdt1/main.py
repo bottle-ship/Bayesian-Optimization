@@ -52,6 +52,8 @@ def main():
     plt.ylabel('f2(x)')
     plt.legend()
 
+    plt.savefig('result.png')
+
     plt.show()
 
 
